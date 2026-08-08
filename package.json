@@ -1,11 +1,28 @@
 {
   "name": "trae-pet",
-  "version": "0.1.0",
-  "description": "桌面宠物：通过 TraeCode 官方 Hook 监听 Trae 智能体状态（进行中 / 已完成 / 等待交互）",
-  "main": "server.js",
+  "version": "0.2.0",
+  "description": "桌面宠物：通过 TraeCode 官方 Hook 监听 Trae 智能体状态（进行中 / 已完成 / 等待交互），Electron 透明置顶窗口",
+  "main": "src/main.js",
   "type": "commonjs",
-  "scripts": { "start": "node server.js" },
+  "scripts": {
+    "start": "electron .",
+    "server": "node src/server.js",
+    "dev": "electron .",
+    "dist": "electron-builder"
+  },
+  "build": {
+    "appId": "com.traepet.app",
+    "productName": "trae-pet",
+    "files": ["src/**/*", "public/**/*", "package.json"],
+    "win": { "target": "nsis" },
+    "mac": { "target": "dmg" },
+    "linux": { "target": "AppImage" }
+  },
   "engines": { "node": ">=18" },
-  "keywords": ["trae", "trae-work", "hook", "desktop-pet", "agent"],
-  "license": "MIT"
+  "keywords": ["trae", "trae-work", "hook", "desktop-pet", "electron", "agent"],
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  }
 }
