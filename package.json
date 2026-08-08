@@ -1,0 +1,11 @@
+{
+  "name": "trae-pet",
+  "version": "0.1.0",
+  "description": "桌面宠物：通过 TraeCode 官方 Hook 监听 Trae 智能体状态（进行中 / 已完成 / 等待交互）",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" },
+  "keywords": ["trae", "trae-work", "hook", "desktop-pet", "agent"],
+  "license": "MIT"
+}

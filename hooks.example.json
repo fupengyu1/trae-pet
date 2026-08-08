@@ -1,0 +1,10 @@
+{
+  "hooks": {
+    "SessionStart": [{ "type": "command", "command": "curl -s -X POST http://localhost:8787/event -H 'Content-Type: application/json' -d @-" }],
+    "UserPromptSubmit": [{ "type": "command", "command": "curl -s -X POST http://localhost:8787/event -H 'Content-Type: application/json' -d @-" }],
+    "PreToolUse": [{ "type": "command", "command": "curl -s -X POST http://localhost:8787/event -H 'Content-Type: application/json' -d @-" }],
+    "PostToolUse": [{ "type": "command", "command": "curl -s -X POST http://localhost:8787/event -H 'Content-Type: application/json' -d @-" }],
+    "Stop": [{ "type": "command", "command": "curl -s -X POST http://localhost:8787/event -H 'Content-Type: application/json' -d @-" }],
+    "Notification": [{ "type": "command", "command": "curl -s -X POST http://localhost:8787/event -H 'Content-Type: application/json' -d @-" }]
+  }
+}
