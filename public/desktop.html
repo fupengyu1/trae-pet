@@ -5,87 +5,244 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>trae-pet</title>
 <style>
-  :root { --card: rgba(255,255,255,0.06); --border: rgba(255,255,255,0.12); --text: #e5e7eb; --muted: #9ca3af; --idle: #94a3b8; --running: #f59e0b; --waiting: #38bdf8; --done: #34d399; }
+  :root {
+    --bg: rgba(28, 26, 40, 0.82);
+    --card: rgba(255, 255, 255, 0.07);
+    --border: rgba(255, 255, 255, 0.12);
+    --text: #f4f2fa;
+    --muted: #b9b4cf;
+    --idle: #b8aef0;
+    --running: #ffb454;
+    --waiting: #60d0ff;
+    --done: #7ce7a8;
+    --body: #ffd98a;
+    --body2: #f7b267;
+    --ink: #3a2a1c;
+  }
   * { box-sizing: border-box; margin: 0; }
   html, body { width: 100%; height: 100%; }
-  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: transparent; color: var(--text); overflow: hidden; user-select: none; -webkit-app-region: no-drag; }
-  body.preview { background: #1a1a2e; }
-  #stage { position: relative; width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; }
-  .bubble { position: absolute; top: 6%; left: 50%; transform: translateX(-50%); width: max-content; max-width: 70vw; background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 10px 14px; font-size: 13px; line-height: 1.5; text-align: center; opacity: 0; transition: opacity .3s ease; backdrop-filter: blur(6px); }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: transparent; color: var(--text); overflow: hidden; user-select: none;
+    -webkit-app-region: no-drag;
+  }
+  body.preview { background: #14121f; }
+
+  #panel {
+    position: relative; width: 100vw; height: 100vh; padding: 10px;
+    display: flex; align-items: stretch; justify-content: center;
+  }
+  .card {
+    position: relative; flex: 1; border-radius: 26px;
+    background: var(--bg); border: 1px solid var(--border);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 18px 50px rgba(0,0,0,.45);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  /* 顶部渐变光带 */
+  .card::before { content:""; position:absolute; inset: 0 0 auto 0; height: 3px;
+    background: linear-gradient(90deg, var(--c, var(--idle)), transparent 70%); }
+
+  .head {
+    display: flex; align-items: center; gap: 8px; padding: 14px 16px 10px;
+  }
+  .head .logo { width: 12px; height: 12px; border-radius: 50%; background: var(--c, var(--idle)); }
+  .head .title { font-weight: 700; font-size: 14px; letter-spacing: .3px; }
+  .head .pill {
+    margin-left: auto; font-size: 11px; padding: 3px 10px; border-radius: 999px;
+    background: var(--c, var(--idle)); color: #1a1428; font-weight: 700;
+    transition: background .3s; white-space: nowrap;
+  }
+  .head .close {
+    cursor: pointer; width: 24px; height: 24px; border-radius: 50%;
+    display: grid; place-items: center; color: var(--muted); font-size: 15px;
+    background: var(--card); border: 1px solid var(--border);
+  }
+  .head .close:hover { color: #fff; background: rgba(255,255,255,.14); }
+
+  /* ---- 宠物舞台 ---- */
+  .stage { flex: 1; display: grid; place-items: center; position: relative; }
+  .aura {
+    position: absolute; width: 190px; height: 190px; border-radius: 50%;
+    background: radial-gradient(circle, var(--c, var(--idle)) 0%, transparent 70%);
+    opacity: 0; filter: blur(6px); transition: opacity .4s;
+  }
+  .pet[data-status]:not([data-status="idle"]) .aura { opacity: .5; animation: auraPulse 2.2s infinite; }
+  @keyframes auraPulse { 0%,100%{ transform: scale(.96); opacity:.35;} 50%{ transform: scale(1.06); opacity:.5;} }
+
+  .pet { position: relative; width: 150px; height: 150px; cursor: pointer; }
+  .pet:active { transform: scale(.96); }
+
+  /* 身体 */
+  .body {
+    position: absolute; inset: 0; border-radius: 46% 46% 50% 50%;
+    background: radial-gradient(circle at 34% 28%, #ffe3ab, var(--body) 34%, var(--body2) 78%);
+    box-shadow: inset 0 -10px 18px rgba(150,90,20,.22), 0 14px 26px rgba(0,0,0,.28);
+  }
+  .body::after { /* 高光 */
+    content:""; position:absolute; left: 20%; top: 12%; width: 38px; height: 22px;
+    border-radius: 50%; background: rgba(255,255,255,.55); transform: rotate(-18deg);
+  }
+  /* 耳朵 */
+  .ear { position:absolute; top: -6px; width: 42px; height: 42px; background: var(--body2);
+    border-radius: 50% 50% 40% 40%; }
+  .ear.l { left: 6px; transform: rotate(-18deg); } .ear.r { right: 6px; transform: rotate(18deg); }
+  .ear::after { content:""; position:absolute; inset: 8px; border-radius:50%;
+    background: var(--body); }
+
+  /* 眼睛 */
+  .eye { position:absolute; top: 46%; width: 18px; height: 22px; background: var(--ink);
+    border-radius: 50%; }
+  .eye.l { left: 27%; } .eye.r { right: 27%; }
+  .eye::after { content:""; position:absolute; top: 3px; left: 3px; width: 6px; height: 6px;
+    background:#fff; border-radius:50%; }
+  .pet[data-status="idle"] .eye, .pet[data-status="done"] .eye { animation: blink 4s infinite; }
+  @keyframes blink { 0%,92%,100%{ transform: scaleY(1);} 95%{ transform: scaleY(.08);} }
+
+  /* 腮红 */
+  .cheek { position:absolute; top: 60%; width: 16px; height: 9px; border-radius:50%;
+    background: rgba(255,120,120,.55); }
+  .cheek.l { left: 15%; } .cheek.r { right: 15%; }
+
+  /* 嘴 */
+  .mouth { position:absolute; bottom: 24%; left: 50%; transform: translateX(-50%); }
+  .mouth.smile { width: 24px; height: 12px; border-bottom: 3px solid var(--ink); border-radius: 0 0 22px 22px; }
+  .mouth.flat { width: 18px; height: 4px; border-bottom: 3px solid var(--ink); border-radius: 2px; }
+  .mouth.wait { width: 14px; height: 14px; border: 3px solid var(--ink); border-radius: 50%; background: var(--ink); }
+  .mouth.oh { width: 16px; height: 20px; border: 3px solid var(--ink); border-radius: 50%; background: #3a2a1c; }
+  .mouth.oh::after { content:""; position:absolute; inset: 2px; background:#1a0f08; border-radius:50%; }
+
+  /* 状态动画 */
+  .pet[data-status="idle"] .body, .pet[data-status="done"] .body { animation: breathe 3.2s ease-in-out infinite; }
+  @keyframes breathe { 0%,100%{ transform: scale(1);} 50%{ transform: scale(1.04);} }
+  .pet[data-status="running"] { animation: bob 1s ease-in-out infinite; }
+  @keyframes bob { 0%,100%{ transform: translateY(0) rotate(0);} 25%{ transform: translateY(-4px) rotate(-3deg);} 75%{ transform: translateY(-4px) rotate(3deg);} }
+  .pet[data-status="waiting"] { animation: bounce 1.1s ease-in-out infinite; }
+  @keyframes bounce { 0%,100%{ transform: translateY(0);} 50%{ transform: translateY(-10px);} }
+  .pet[data-status="done"] .spark { display:block; }
+  .spark { display:none; position:absolute; inset:0; pointer-events:none; }
+  .spark i { position:absolute; color:#ffe27a; font-style:normal; font-size:16px; animation: twinkle 1.4s infinite; }
+  .spark i:nth-child(1){ left:2%; top:12%; animation-delay:.1s; }
+  .spark i:nth-child(2){ right:4%; top:20%; font-size:12px; animation-delay:.5s; }
+  .spark i:nth-child(3){ left:10%; bottom:6%; font-size:12px; animation-delay:.8s; }
+  .spark i:nth-child(4){ right:12%; bottom:2%; animation-delay:.3s; }
+  @keyframes twinkle { 0%,100%{ opacity:0; transform: scale(.6) rotate(0);} 50%{ opacity:1; transform: scale(1.1) rotate(20deg);} }
+
+  /* 气泡 */
+  .bubble {
+    position: absolute; top: 8%; left: 50%; transform: translateX(-50%);
+    width: max-content; max-width: 82%; background: var(--card); border:1px solid var(--border);
+    border-radius: 14px; padding: 8px 12px; font-size: 12px; line-height: 1.5; text-align:center;
+    opacity: 0; transition: opacity .3s; backdrop-filter: blur(4px);
+  }
   .bubble.show { opacity: 1; }
-  .bubble .tag { display:inline-block; font-size:11px; padding:2px 8px; border-radius: 999px; margin-bottom:4px; color:#fff; }
-  .bubble .msg { color: var(--muted); font-size: 12px; word-break: break-all; }
-  .pet { width: 150px; height: 150px; cursor: grab; -webkit-app-region: drag; }
-  .pet:active { cursor: grabbing; }
-  .pet-body { width: 150px; height: 150px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ffd98a, #f0a64a 70%); box-shadow: 0 12px 40px rgba(0,0,0,.45); position: relative; }
-  .pet-body::after { content: ""; position: absolute; left: 22%; top: 12%; width: 34px; height: 20px; border-radius: 50%; background: rgba(255,255,255,.5); transform: rotate(-15deg); }
-  .eye { position: absolute; top: 44%; width: 16px; height: 20px; background: #2b1f14; border-radius: 50%; }
-  .eye.l { left: 30%; } .eye.r { right: 30%; }
-  .eye::after { content:""; position:absolute; top:3px; left:3px; width:5px; height:5px; background:#fff; border-radius:50%; }
-  .mouth { position: absolute; bottom: 26%; left: 50%; transform: translateX(-50%); width: 22px; height: 10px; }
-  .mouth.smile { border-bottom: 3px solid #2b1f14; border-radius: 0 0 20px 20px; }
-  .mouth.flat { width: 16px; border-bottom: 3px solid #2b1f14; }
-  .mouth.wait { width: 12px; height: 12px; border: 3px solid #2b1f14; border-radius: 50%; background: #2b1f14; }
-  .halo { position: absolute; left: 50%; top: 50%; width: 178px; height: 178px; transform: translate(-50%,-50%); border-radius: 50%; border: 3px solid var(--c, var(--idle)); opacity: .35; animation: pulse 2s infinite; display: none; }
-  .pet[data-status="running"] .halo, .pet[data-status="waiting"] .halo, .pet[data-status="done"] .halo { display: block; }
-  @keyframes pulse { 0%,100% { transform: translate(-50%,-50%) scale(1); opacity:.35; } 50% { transform: translate(-50%,-50%) scale(1.12); opacity:.12; } }
-  .pet[data-status="running"] .pet-body { animation: bob .9s ease-in-out infinite; }
-  @keyframes bob { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-4deg)} 75%{transform:rotate(4deg)} }
-  .statusbar { position: absolute; bottom: 2%; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--muted); background: var(--card); border: 1px solid var(--border); padding: 4px 10px; border-radius: 999px; -webkit-app-region: no-drag; }
-  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--c, var(--idle)); }
-  .toggle { cursor: pointer; color: #60a5fa; }
-  .history { position: absolute; left: 50%; bottom: 100%; transform: translateX(-50%); width: 70vw; max-width: 420px; max-height: 40vh; overflow-y: auto; font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: var(--muted); background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 8px; display: none; -webkit-app-region: no-drag; }
-  .history.open { display: block; }
-  .history .row { padding: 2px 0; border-bottom: 1px dashed var(--border); }
+  .bubble .msg { color: var(--muted); word-break: break-all; }
+
+  /* 底部 */
+  .foot { padding: 8px 16px 14px; display: flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); }
+  .foot .dot { width:9px; height:9px; border-radius:50%; background: var(--c, var(--idle)); }
+  .foot .status { font-weight:600; color:var(--text); }
+  .foot .spacer { flex:1; }
+  .foot button {
+    cursor:pointer; border:1px solid var(--border); background: var(--card); color:var(--muted);
+    font-size:11px; padding:3px 9px; border-radius:999px;
+  }
+  .foot button:hover { color:#fff; background: rgba(255,255,255,.14); }
+
+  .history {
+    position:absolute; left:14px; right:14px; bottom:48px; max-height:38%;
+    overflow-y:auto; font-family: ui-monospace, Menlo, monospace; font-size:11px;
+    color:var(--muted); background: rgba(0,0,0,.5); border:1px solid var(--border);
+    border-radius:12px; padding:8px; display:none; z-index:5;
+  }
+  .history.open { display:block; }
+  .history .row { padding:2px 0; border-bottom:1px dashed var(--border); }
 </style>
 </head>
 <body>
-  <div id="stage">
-    <div class="bubble" id="bubble"><span class="tag">状态</span><br/><span class="msg" id="bubbleMsg">等待 Trae 任务…</span></div>
-    <div class="pet" id="pet" data-status="idle" title="右键更多操作">
-      <div class="halo"></div>
-      <div class="pet-body"><div class="eye l"></div><div class="eye r"></div><div class="mouth smile"></div></div>
+  <div id="panel">
+    <div class="card">
+      <div class="head">
+        <span class="logo"></span>
+        <span class="title">trae·pet</span>
+        <span class="pill" id="pill">空闲</span>
+        <span class="close" id="close" title="收起">×</span>
+      </div>
+
+      <div class="stage">
+        <div class="bubble" id="bubble"><span class="msg" id="bubbleMsg">等待 Trae 任务…</span></div>
+        <div class="aura"></div>
+        <div class="pet" id="pet" data-status="idle" title="右键更多操作">
+          <div class="spark"><i>✦</i><i>✦</i><i>✦</i><i>✦</i></div>
+          <div class="ear l"></div><div class="ear r"></div>
+          <div class="body"></div>
+          <div class="eye l"></div><div class="eye r"></div>
+          <div class="cheek l"></div><div class="cheek r"></div>
+          <div class="mouth smile"></div>
+        </div>
+      </div>
+
+      <div class="foot">
+        <span class="dot"></span>
+        <span class="status" id="statusText">idle</span>
+        <span class="spacer"></span>
+        <button id="toggleHistory">历史</button>
+        <button id="openBrowser">网页版</button>
+        <button id="quit">退出</button>
+      </div>
+
+      <div class="history" id="history"></div>
     </div>
-    <div class="statusbar"><span class="dot"></span><span id="statusText">idle</span><span class="toggle" id="toggleHistory">历史</span></div>
-    <div class="history" id="history"></div>
   </div>
+
 <script>
   const pet = document.getElementById('pet');
   const bubble = document.getElementById('bubble');
   const bubbleMsg = document.getElementById('bubbleMsg');
   const statusText = document.getElementById('statusText');
-  const dot = document.querySelector('.dot');
+  const pill = document.getElementById('pill');
+  const dot = document.querySelector('.foot .dot');
+  const card = document.querySelector('.card');
   const historyEl = document.getElementById('history');
-  const tag = document.querySelector('.bubble .tag');
+
   const STATUS_META = {
-    idle:    { c: 'var(--idle)',    en: 'idle',    zh: '空闲',    msg: '等待 Trae 任务…', mouth: 'smile' },
-    running: { c: 'var(--running)', en: 'running', zh: '进行中',  msg: '正在努力工作…',  mouth: 'flat'  },
-    waiting: { c: 'var(--waiting)', en: 'waiting', zh: '等待交互', msg: '需要你确认一下',  mouth: 'wait'  },
-    done:    { c: 'var(--done)',    en: 'done',    zh: '已完成',  msg: '任务完成！',      mouth: 'smile' },
+    idle:    { c: 'var(--idle)',    en: 'idle',    zh: '空闲',   msg: '等你派活…',        mouth: 'smile' },
+    running: { c: 'var(--running)', en: 'running', zh: '进行中', msg: '正在努力干活…',    mouth: 'flat'  },
+    waiting: { c: 'var(--waiting)', en: 'waiting', zh: '等待',   msg: '需要你确认一下',    mouth: 'wait'  },
+    done:    { c: 'var(--done)',    en: 'done',    zh: '已完成', msg: '搞定啦！',          mouth: 'smile' },
   };
+
   function apply(s) {
     const meta = STATUS_META[s.status] || STATUS_META.idle;
     pet.dataset.status = s.status;
-    pet.style.setProperty('--c', meta.c);
-    dot.style.background = meta.c;
+    const color = meta.c;
+    card.style.setProperty('--c', color);
+    dot.style.background = color;
+    pill.style.background = color;
     statusText.textContent = meta.en + (s.event ? ' · ' + s.event : '');
+    pill.textContent = meta.zh;
     pet.querySelector('.mouth').className = 'mouth ' + meta.mouth;
     const prompt = (s.prompt || '').trim();
-    bubbleMsg.textContent = meta.msg + (prompt ? '「' + prompt.slice(0, 40) + '」' : '');
+    bubbleMsg.textContent = meta.msg + (prompt ? '「' + prompt.slice(0, 36) + '」' : '');
     bubble.classList.add('show');
-    tag.style.background = meta.c;
-    tag.textContent = meta.zh;
   }
+
   function renderHistory(s) {
-    historyEl.innerHTML = (s.history || []).slice(-30).reverse().map(h => `<div class="row">${new Date(h.ts).toLocaleTimeString()} · ${h.event} → ${h.status}</div>`).join('');
+    historyEl.innerHTML = (s.history || []).slice(-30).reverse().map(h =>
+      `<div class="row">${new Date(h.ts).toLocaleTimeString()} · ${h.event} → ${h.status}</div>`).join('');
   }
+
   const es = new EventSource('/stream');
   es.onmessage = (e) => { const s = JSON.parse(e.data); apply(s); renderHistory(s); };
   es.onerror = () => { pet.dataset.status = 'idle'; };
-  document.getElementById('toggleHistory').addEventListener('click', () => historyEl.classList.toggle('open'));
-  if (window.traePet) {
-    pet.addEventListener('contextmenu', (e) => { e.preventDefault(); window.traePet.notifyRightClick(); });
-  }
+
+  document.getElementById('toggleHistory').addEventListener('click', (e) => {
+    e.stopPropagation(); historyEl.classList.toggle('open');
+  });
+  document.getElementById('openBrowser').addEventListener('click', () => window.traePet && window.traePet.openBrowser());
+  document.getElementById('quit').addEventListener('click', () => window.traePet && window.traePet.quit());
+  document.getElementById('close').addEventListener('click', () => window.traePet && window.traePet.closePanel());
+
   if (!window.traePet) document.body.classList.add('preview');
   apply({ status: 'idle', event: null, prompt: '', history: [] });
 </script>

@@ -1,6 +1,8 @@
 # trae-pet
 
-一个**桌面宠物**，通过 TraeCode 官方 **Hook** 机制监听 Trae 智能体的状态（进行中 / 已完成 / 需要交互），并用一只小宠物实时展示。已封装为 **Electron 透明置顶桌面窗口**。
+一个**macOS 菜单栏宠物**，仿照 Codex 宠物功能。通过 TraeCode 官方 **Hook** 机制监听 Trae 智能体的状态（进行中 / 已完成 / 需要交互），并用一只可爱的小宠物常驻在系统菜单栏实时反馈。点击托盘图标弹出宠物面板。
+
+> 基于 **Electron 透明无边框窗口** 实现，宠物住在菜单栏，不占 Dock。
 
 ## 原理
 
@@ -29,10 +31,11 @@ npm run server
 
 ## 桌面窗口特性
 
-- **透明、无边框、置顶**：宠物悬浮在桌面最上层，不占任务栏。
-- **可拖拽**：按住宠物本体即可拖动窗口位置。
-- **右键菜单**：右键宠物弹出菜单 —— 切换置顶 / 重新加载 / 打开浏览器版 / 退出。
-- **托盘常驻**：最小化后驻留系统托盘，双击托盘图标可重新显示。
+- **菜单栏常驻**：启动后只有一个可爱的托盘图标，不占 Dock / 任务栏。
+- **点击弹出面板**：点击托盘图标弹出宠物面板（透明无边框、置顶），自动贴到菜单栏下方。
+- **失焦自动收起**：点击面板外区域自动隐藏，清爽不挡视线。
+- **托盘右键菜单**：显示/隐藏宠物、切换置顶、重新加载、打开浏览器版、退出（macOS 上因设置了 ContextMenu，左键点击事件在部分版本不可用，可用右键菜单控制）。
+- **状态动画**：空闲呼吸 / 进行中蹦跳 / 等待确认弹跳 / 完成闪烁，随 Hook 状态实时切换。
 
 ## 配置 TraeCode Hook
 
@@ -65,11 +68,15 @@ Electron 透明置顶窗口 (src/main.js)
 ```
 trae-pet/
 ├── src/
-│   ├── main.js        # Electron 主进程（透明窗口 + 托盘 + 菜单）
+│   ├── main.js        # Electron 主进程（菜单栏 Tray + 弹出面板窗口）
 │   ├── preload.js     # 安全 IPC 桥（contextBridge）
 │   └── server.js      # 零依赖 HTTP + SSE 状态服务（可内嵌）
 ├── public/
-│   └── desktop.html   # 桌面宠物页面（透明窗口/浏览器通用）
+│   └── desktop.html   # 宠物面板页面（透明窗口/浏览器通用）
+├── assets/
+│   └── pet-tray.png   # 菜单栏托盘图标（`npm run icon` 可重新生成）
+├── scripts/
+│   └── gen-icon.js    # 托盘图标生成脚本
 ├── hooks.example.json # TraeCode Hook 配置示例
 └── package.json
 ```
@@ -79,7 +86,7 @@ trae-pet/
 - **直接操作 / 拦截**：在 `src/server.js` 的 `handleEvent()` 中返回 `{ behavior: "block" }` 即可通过 Hook 返回结果拦截工具调用（如高风险的 `PreToolUse`）。
 - **打包分发**：`npm run dist` 使用 electron-builder 生成 Windows / macOS / Linux 安装包。注意需在对应平台各自打包。
 - **多会话**：按 `sessionId` 维护多个状态机即可。
-- **自定义托盘图标**：`src/main.js` 中 `createTray()` 目前用占位图标，可替换为你的 `.png`/`.ico`。
+- **自定义托盘图标**：替换 `assets/pet-tray.png`，或改 `scripts/gen-icon.js` 后运行 `npm run icon` 重新生成。
 
 ## 常见问题
 
