@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Trae 桌面宠物</title>
+<style>
+/* ==========================================================================
+   Design tokens —— 与设计稿保持一致
+   ========================================================================== */
+:root {
+  --pet-background: transparent;
+  --pet-foreground: #f3f4f6;
+  --pet-card: rgba(255, 255, 255, 0.08);
+  --pet-card-foreground: #f3f4f6;
+  --pet-popover: rgba(30, 30, 50, 0.92);
+  --pet-popover-foreground: #f3f4f6;
+  --pet-primary: #f59e0b;
+  --pet-primary-foreground: #1a1a2e;
+  --pet-muted: rgba(255, 255, 255, 0.12);
+  --pet-muted-foreground: #a6adbb;
+  --pet-border: rgba(255, 255, 255, 0.14);
+  --pet-input: rgba(255, 255, 255, 0.1);
+  --pet-ring: rgba(245, 158, 11, 0.5);
+  --pet-radius-sm: 6px;
+  --pet-radius-md: 12px;
+  --pet-radius-lg: 18px;
+
+  --state-idle: #94a3b8;
+  --state-running: #f59e0b;
+  --state-waiting: #38bdf8;
+  --state-done: #34d399;
+
+  --pet-body-start: #ffe4a8;
+  --pet-body-end: #f5b04a;
+  --pet-eye: #2b1f14;
+  --pet-eye-highlight: #ffffff;
+  --pet-shine: rgba(255, 255, 255, 0.55);
+  --pet-blush: rgba(255, 130, 140, 0.28);
+  --pet-preview-bg: #12121f;
+  --pet-tag-text: #ffffff;
+  --pet-shadow-soft: rgba(0, 0, 0, 0.22);
+  --pet-shadow-medium: rgba(0, 0, 0, 0.18);
+  --pet-shadow-drop: rgba(0, 0, 0, 0.2);
+
+  /* environment (non-design) */
+  --env-bg: #12121f;
+  --panel-bg: rgba(22, 22, 36, 0.72);
+  --panel-border: rgba(255, 255, 255, 0.1);
+  --text-dim: #8b90a0;
+  --accent: #f59e0b;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+  color: var(--pet-foreground);
+  background: var(--env-bg);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+/* ==========================================================================
+   Desktop environment background
+   ========================================================================== */
+.desktop {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(1200px 700px at 78% -10%, rgba(245,158,11,.16), transparent 60%),
+    radial-gradient(900px 600px at 8% 110%, rgba(56,189,248,.14), transparent 55%),
+    linear-gradient(160deg, #17172b 0%, #12121f 45%, #0d0d18 100%);
+}
+.desktop::before { /* fine grid */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+  background-size: 44px 44px;
+  -webkit-mask-image: radial-gradient(120% 90% at 70% 20%, #000 30%, transparent 75%);
+          mask-image: radial-gradient(120% 90% at 70% 20%, #000 30%, transparent 75%);
+}
+.orb { position: absolute; border-radius: 50%; filter: blur(60px); opacity: .5; pointer-events: none; }
+.orb.o1 { width: 340px; height: 340px; left: -80px; top: -60px; background: rgba(245,158,11,.28); }
+.orb.o2 { width: 300px; height: 300px; right: -70px; bottom: -70px; background: rgba(56,189,248,.22); }
+.orb.o3 { width: 200px; height: 200px; left: 40%; top: 60%; background: rgba(52,211,153,.14); }
+
+/* corner HUD */
+.hud {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 22px;
+  padding-top: calc(16px + env(safe-area-inset-top));
+  pointer-events: none;
+  z-index: 5;
+}
+.hud .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; letter-spacing: .2px; }
+.hud .brand .logo { width: 26px; height: 26px; border-radius: 8px; display:grid; place-items:center;
+  background: linear-gradient(135deg, #ffca6b, var(--accent)); color:#1a1a2e; }
+.hud .clock { font-size: 13px; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+
+/* ==========================================================================
+   Pet overlay —— 与设计稿一致
+   ========================================================================== */
+#stage-wrap {
+  position: fixed;
+  width: 220px; height: 260px;
+  right: 26px; bottom: 22px;
+  z-index: 20;
+  touch-action: none; /* enabled for multi-device dragging */
+}
+#stage { position: relative; width: 100%; height: 100%; }
+
+/* Bubble */
+#bubble {
+  position: absolute;
+  top: 8px; left: 50%;
+  transform: translateX(-50%);
+  min-width: 132px; max-width: 196px;
+  padding: 8px 10px;
+  background: var(--pet-card);
+  border: 1px solid var(--pet-border);
+  border-color: color-mix(in srgb, var(--c, var(--state-idle)) 40%, transparent);
+  border-radius: var(--pet-radius-md);
+  box-shadow: 0 4px 16px var(--pet-shadow-soft);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  text-align: center;
+  z-index: 10;
+  transition: opacity .25s ease, transform .25s ease;
+}
+#bubble .tag {
+  display: inline-block;
+  padding: 2px 7px; border-radius: 999px;
+  font-size: 10px; line-height: 1.2;
+  color: var(--pet-tag-text);
+  background: var(--c, var(--state-idle));
+  margin-bottom: 4px;
+}
+#bubble .msg { display: block; font-size: 11px; line-height: 1.4; color: var(--pet-muted-foreground); word-break: break-all; }
+
+/* Pet */
+#pet {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 124px; height: 124px;
+  transform: translate(-50%, -50%);
+  z-index: 5;
+  cursor: grab;
+}
+#pet:active { cursor: grabbing; }
+
+.halo {
+  position: absolute; left: 50%; top: 50%;
+  width: 154px; height: 154px;
+  transform: translate(-50%, -50%) scale(1);
+  border-radius: 50%;
+  border: 3px solid var(--c, var(--state-idle));
+  opacity: 0; pointer-events: none; z-index: 0;
+}
+#pet[data-status="idle"] .halo { opacity:.25; animation: halo-breathe 2.4s ease-in-out infinite; }
+#pet[data-status="running"] .halo { opacity:.45; animation: halo-spin-pulse 1.3s linear infinite; }
+#pet[data-status="waiting"] .halo { opacity:.5; animation: halo-blink .9s ease-in-out infinite; }
+#pet[data-status="done"] .halo { opacity:.55; animation: halo-celebrate .8s ease-out infinite; }
+
+@keyframes halo-breathe { 0%,100%{transform:translate(-50%,-50%) scale(1);opacity:.22;} 50%{transform:translate(-50%,-50%) scale(1.1);opacity:.08;} }
+@keyframes halo-spin-pulse { 0%{transform:translate(-50%,-50%) scale(1) rotate(0deg);opacity:.35;} 50%{transform:translate(-50%,-50%) scale(1.12) rotate(180deg);opacity:.2;} 100%{transform:translate(-50%,-50%) scale(1) rotate(360deg);opacity:.35;} }
+@keyframes halo-blink { 0%,100%{opacity:.25;} 50%{opacity:.55;} }
+@keyframes halo-celebrate { 0%,100%{transform:translate(-50%,-50%) scale(1);opacity:.45;} 50%{transform:translate(-50%,-50%) scale(1.18);opacity:.22;} }
+
+.pet-image {
+  position: absolute; left: 6px; top: 10px;
+  width: 112px; height: 112px;
+  object-fit: contain; border-radius: 50%;
+  z-index: 2; transform-origin: center center;
+  filter: drop-shadow(0 14px 36px var(--pet-shadow-drop));
+  pointer-events: none; -webkit-user-drag: none;
+}
+#pet[data-status="running"] .pet-image { animation: body-sway .9s ease-in-out infinite; }
+#pet[data-status="done"] .pet-image { animation: body-bounce .7s ease-in-out infinite; }
+#pet[data-status="waiting"] .pet-image { animation: body-levitate 1.6s ease-in-out infinite; }
+
+@keyframes body-sway { 0%,100%{transform:rotate(0deg);} 25%{transform:rotate(-4deg);} 75%{transform:rotate(4deg);} }
+@keyframes body-bounce { 0%,100%{transform:translateY(0) scale(1);} 40%{transform:translateY(-7px) scale(1.02);} 60%{transform:translateY(0) scale(1);} }
+@keyframes body-levitate { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-3px);} }
+
+.pet-shadow {
+  position: absolute; left: 50%; bottom: -4px;
+  width: 76px; height: 12px;
+  transform: translateX(-50%) scale(1);
+  background: var(--pet-shadow-drop); border-radius: 50%;
+  filter: blur(4px); z-index: 0;
+}
+#pet[data-status="done"] .pet-shadow { animation: shadow-bounce .7s ease-in-out infinite; }
+@keyframes shadow-bounce { 0%,100%{transform:translateX(-50%) scale(1);opacity:.2;} 40%{transform:translateX(-50%) scale(.82);opacity:.12;} 60%{transform:translateX(-50%) scale(1);opacity:.2;} }
+
+/* Status bar */
+#statusbar {
+  position: absolute; bottom: 6px; left: 50%;
+  transform: translateX(-50%);
+  display: flex; align-items: center; gap: 6px;
+  min-width: 0; padding: 4px 10px;
+  background: var(--pet-card);
+  border: 1px solid var(--pet-border); border-radius: 999px;
+  box-shadow: 0 4px 14px var(--pet-shadow-medium);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  font-size: 11px; color: var(--pet-muted-foreground);
+  z-index: 20;
+}
+#statusbar .dot { width:7px; height:7px; border-radius:50%; background:var(--c,var(--state-idle)); box-shadow:0 0 6px var(--c,var(--state-idle)); flex-shrink:0; }
+#statusText { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 108px; }
+#toggleHistory { cursor: pointer; color: var(--pet-primary); flex-shrink:0; transition: color .2s; }
+#toggleHistory:hover { color: var(--pet-foreground); text-decoration: underline; }
+
+/* History panel (inline) */
+#history {
+  position: absolute; left: 50%; bottom: 42px;
+  transform: translateX(-50%);
+  width: 196px; max-height: 120px; overflow-y: auto;
+  display: none; padding: 8px;
+  background: var(--pet-popover);
+  border: 1px solid var(--pet-border); border-radius: var(--pet-radius-md);
+  box-shadow: 0 -6px 18px var(--pet-shadow-soft);
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 10px; line-height: 1.4; color: var(--pet-muted-foreground);
+  z-index: 30;
+}
+#history.open { display: block; }
+#history .row { display:flex; gap:6px; padding:3px 0; border-bottom:1px dashed var(--pet-border); }
+#history .row:last-child { border-bottom:none; }
+#history .ts { opacity:.8; flex-shrink:0; }
+#history .ev { word-break: break-all; }
+
+/* ==========================================================================
+   Control panel
+   ========================================================================== */
+#panel {
+  position: fixed;
+  top: 68px; right: 270px;
+  width: 320px; max-height: calc(100vh - 96px);
+  overflow-y: auto;
+  padding: 18px;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 20px;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 24px 60px rgba(0,0,0,.4);
+  z-index: 15;
+  transition: transform .3s ease, opacity .3s ease;
+}
+.no-scrollbar::-webkit-scrollbar { display:none; }
+.no-scrollbar { -ms-overflow-style:none; scrollbar-width:none; }
+
+.panel-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+.panel-head h2 { margin:0; font-size:15px; font-weight:600; letter-spacing:.2px; }
+.pill {
+  display:inline-flex; align-items:center; gap:6px;
+  font-size:11px; padding:4px 9px; border-radius:999px;
+  background: var(--pet-card); border:1px solid var(--panel-border);
+  color: var(--text-dim);
+}
+.pill .dot { width:6px; height:6px; border-radius:50%; background:var(--c,var(--state-idle)); box-shadow:0 0 6px var(--c,var(--state-idle)); }
+
+.section { margin-bottom:16px; }
+.section > label, .section-title { display:block; font-size:11px; color:var(--text-dim); margin-bottom:8px; letter-spacing:.3px; }
+
+.btn-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+.status-btn {
+  border:1px solid var(--panel-border); background:var(--pet-card);
+  color:var(--pet-foreground); border-radius:10px; padding:8px 0;
+  font-size:12px; cursor:pointer; transition:all .18s ease;
+}
+.status-btn:hover { background:var(--pet-muted); }
+.status-btn.active { border-color:var(--c,var(--state-idle)); box-shadow:0 0 0 1px var(--c,var(--state-idle)) inset; }
+
+.btn-primary {
+  width:100%; margin-top:10px; padding:10px;
+  border:none; border-radius:12px; cursor:pointer;
+  background:linear-gradient(135deg,#ffca6b,var(--accent));
+  color:#1a1a2e; font-weight:600; font-size:13px;
+  box-shadow:0 8px 22px rgba(245,158,11,.28);
+  transition:transform .15s ease, box-shadow .2s ease;
+}
+.btn-primary:hover { transform:translateY(-1px); box-shadow:0 12px 26px rgba(245,158,11,.36); }
+.btn-primary:active { transform:translateY(0); }
+
+.prompt-row { display:flex; gap:8px; }
+.prompt-row input {
+  flex:1; min-width:0; padding:9px 11px;
+  background:var(--pet-input); border:1px solid var(--panel-border);
+  border-radius:10px; color:var(--pet-foreground); font-size:12px; outline:none;
+}
+.prompt-row input::placeholder { color:var(--text-dim); }
+.prompt-row input:focus { border-color:var(--pet-primary); box-shadow:0 0 0 3px var(--pet-ring); }
+.prompt-row button {
+  border:1px solid var(--panel-border); background:var(--pet-card);
+  color:var(--pet-foreground); border-radius:10px; padding:0 14px; cursor:pointer; font-size:12px;
+}
+.prompt-row button:hover { background:var(--pet-muted); }
+
+.slider-row { display:flex; align-items:center; gap:10px; font-size:12px; color:var(--text-dim); }
+.slider-row .val { width:34px; text-align:right; font-variant-numeric:tabular-nums; color:var(--pet-foreground); }
+input[type=range] { -webkit-appearance:none; appearance:none; flex:1; height:4px; border-radius:4px; background:var(--pet-card); outline:none; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:var(--accent); cursor:pointer; box-shadow:0 0 0 3px rgba(245,158,11,.2); }
+input[type=range]::-moz-range-thumb { width:14px; height:14px; border:none; border-radius:50%; background:var(--accent); cursor:pointer; }
+
+.switch-row { display:flex; align-items:center; justify-content:space-between; font-size:12px; color:var(--text-dim); }
+.switch { position:relative; width:40px; height:22px; border-radius:999px; background:var(--pet-card); border:1px solid var(--panel-border); cursor:pointer; transition:background .2s; }
+.switch::after { content:""; position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:#fff; transition:transform .2s; }
+.switch.on { background:var(--accent); }
+.switch.on::after { transform:translateX(18px); }
+
+.hist-list { display:flex; flex-direction:column; gap:6px; }
+.hist-item { display:flex; align-items:center; gap:8px; font-size:11px; color:var(--text-dim); }
+.hist-item .hdot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+.hist-item .hev { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.hist-item .hts { font-variant-numeric:tabular-nums; opacity:.7; }
+
+.status-legend { display:flex; flex-wrap:wrap; gap:6px; }
+.legend-item { display:inline-flex; align-items:center; gap:5px; font-size:11px; color:var(--text-dim); }
+.legend-item i { width:8px; height:8px; border-radius:50%; }
+
+/* panel toggle (mobile) */
+#panelToggle {
+  position: fixed; right: 20px; bottom: 20px; z-index: 25;
+  width: 52px; height: 52px; border-radius: 16px; border:none; cursor:pointer;
+  background:linear-gradient(135deg,#ffca6b,var(--accent)); color:#1a1a2e;
+  display:none; place-items:center; box-shadow:0 12px 30px rgba(245,158,11,.4);
+  font-size:20px;
+}
+
+/* ==========================================================================
+   Responsive / multi-device
+   ========================================================================== */
+@media (max-width: 1024px) {
+  #panel { right: 20px; }
+}
+@media (max-width: 768px) {
+  .hud .clock { display:none; }
+  #stage-wrap { right: 16px; bottom: 16px; }
+  #panel {
+    top:auto; right:0; bottom:0; left:0;
+    width:100%; max-height:58vh; border-radius:20px 20px 0 0;
+    transform: translateY(110%);
+    border-left:none; border-right:none; border-bottom:none;
+  }
+  #panel.open { transform: translateY(0); }
+  #panelToggle { display:grid; }
+  #stage-wrap.drag { right:auto; bottom:auto; }
+}
+@media (max-width: 420px) {
+  #stage-wrap { width:180px; height:220px; }
+  #stage-wrap .pet-image { width:92px; height:92px; }
+  #pet { width:104px; height:104px; }
+  .halo { width:130px; height:130px; }
+}
+</style>
+</head>
+<body>
+
+<div class="desktop">
+  <div class="orb o1"></div>
+  <div class="orb o2"></div>
+  <div class="orb o3"></div>
+</div>
+
+<div class="hud">
+  <div class="brand">
+    <span class="logo">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 2.4-1.2 4.5-3 5.8V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.2C6.2 13.5 5 11.4 5 9a7 7 0 0 1 7-7z"/><path d="M9 21h6M10 21v-2M14 21v-2"/></svg>
+    </span>
+    Trae 桌面宠物
+  </div>
+  <div class="clock" id="clock">--:--:--</div>
+</div>
+
+<!-- Pet overlay (design-consistent) -->
+<div id="stage-wrap">
+  <div id="stage">
+    <div id="bubble">
+      <span class="tag">空闲</span>
+      <span class="msg" id="bubbleMsg">等待 Trae 任务…</span>
+    </div>
+    <div id="pet" data-status="idle" title="拖动我 · 右键更多操作">
+      <div class="halo"></div>
+      <img class="pet-image" src="pet.png" alt="Trae Pet" />
+      <div class="pet-shadow"></div>
+    </div>
+    <div id="statusbar">
+      <span class="dot"></span>
+      <span id="statusText">空闲</span>
+      <span id="toggleHistory">历史</span>
+    </div>
+    <div id="history"></div>
+  </div>
+</div>
+
+<!-- Control panel -->
+<aside id="panel" class="no-scrollbar">
+  <div class="panel-head">
+    <h2>宠物控制台</h2>
+    <span class="pill"><span class="dot" id="panelDot"></span><span id="panelStatus">空闲</span></span>
+  </div>
+
+  <div class="section">
+    <span class="section-title">状态切换</span>
+    <div class="btn-grid" id="statusGrid">
+      <button class="status-btn active" data-status="idle" style="--c:var(--state-idle)">空闲</button>
+      <button class="status-btn" data-status="running" style="--c:var(--state-running)">进行中</button>
+      <button class="status-btn" data-status="waiting" style="--c:var(--state-waiting)">等待交互</button>
+      <button class="status-btn" data-status="done" style="--c:var(--state-done)">已完成</button>
+    </div>
+    <button class="btn-primary" id="simulateBtn">▶ 开始任务（模拟流程）</button>
+  </div>
+
+  <div class="section">
+    <label for="promptInput">任务提示词</label>
+    <div class="prompt-row">
+      <input id="promptInput" type="text" placeholder="例如：帮我构建一个项目…" maxlength="40">
+      <button id="sendPrompt">发送</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <span class="section-title">外观</span>
+    <div class="slider-row" style="margin-bottom:10px">
+      <span>大小</span>
+      <input type="range" id="sizeRange" min="60" max="150" value="100">
+      <span class="val" id="sizeVal">100%</span>
+    </div>
+    <div class="slider-row" style="margin-bottom:10px">
+      <span>不透明度</span>
+      <input type="range" id="opacityRange" min="30" max="100" value="100">
+      <span class="val" id="opacityVal">100%</span>
+    </div>
+    <div class="switch-row">
+      <span>锁定位置（不可拖动）</span>
+      <div class="switch" id="lockSwitch"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <span class="section-title">颜色说明</span>
+    <div class="status-legend">
+      <span class="legend-item"><i style="background:var(--state-idle)"></i>空闲</span>
+      <span class="legend-item"><i style="background:var(--state-running)"></i>进行中</span>
+      <span class="legend-item"><i style="background:var(--state-waiting)"></i>等待</span>
+      <span class="legend-item"><i style="background:var(--state-done)"></i>完成</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <span class="section-title">最近事件</span>
+    <div class="hist-list" id="panelHistory"></div>
+  </div>
+</aside>
+
+<button id="panelToggle" aria-label="打开控制台">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+</button>
+
+<script>
+const pet = document.getElementById('pet');
+const bubble = document.getElementById('bubble');
+const bubbleMsg = document.getElementById('bubbleMsg');
+const statusText = document.getElementById('statusText');
+const historyEl = document.getElementById('history');
+const tag = document.querySelector('#bubble .tag');
+const dot = document.querySelector('#statusbar .dot');
+const stageWrap = document.getElementById('stage-wrap');
+
+const STATUS_META = {
+  idle:    { c:'var(--state-idle)',    zh:'空闲',   msg:'等待 Trae 任务…'        },
+  running: { c:'var(--state-running)', zh:'进行中', msg:'正在努力工作…'          },
+  waiting: { c:'var(--state-waiting)', zh:'等待交互', msg:'需要你确认一下'        },
+  done:    { c:'var(--state-done)',    zh:'已完成', msg:'任务完成！'              },
+};
+
+function apply(s) {
+  const meta = STATUS_META[s.status] || STATUS_META.idle;
+  pet.dataset.status = s.status;
+  pet.style.setProperty('--c', meta.c);
+  dot.style.background = meta.c;
+  dot.style.boxShadow = `0 0 6px ${meta.c}`;
+  statusText.textContent = meta.zh + (s.event ? ' · ' + s.event : '');
+
+  const prompt = (s.prompt || '').trim();
+  bubbleMsg.textContent = meta.msg + (prompt ? '「' + prompt.slice(0,30) + '」' : '');
+  tag.style.background = meta.c;
+  tag.textContent = meta.zh;
+
+  // sync control panel
+  document.getElementById('panelDot').style.background = meta.c;
+  document.getElementById('panelStatus').textContent = meta.zh;
+  document.querySelectorAll('#statusGrid .status-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.status === s.status));
+
+  renderHistory(s);
+}
+
+function renderHistory(s) {
+  const list = (s.history || []).slice(-20).reverse();
+  historyEl.innerHTML = list.map(h => {
+    const ts = h.ts ? new Date(h.ts).toLocaleTimeString('zh-CN',{hour12:false}) : '--:--:--';
+    return `<div class="row"><span class="ts">${ts}</span><span class="ev">${h.event || '-'} → ${h.status||'idle'}</span></div>`;
+  }).join('');
+
+  // panel history
+  const pList = (s.history || []).slice(-8).reverse();
+  document.getElementById('panelHistory').innerHTML = pList.map(h => {
+    const m = STATUS_META[h.status] || STATUS_META.idle;
+    const ts = h.ts ? new Date(h.ts).toLocaleTimeString('zh-CN',{hour12:false}) : '--';
+    return `<div class="hist-item"><span class="hdot" style="background:${m.c}"></span><span class="hev">${h.event||m.zh}</span><span class="hts">${ts}</span></div>`;
+  }).join('');
+}
+
+/* ---- SSE stream (real backend) with fallback to local simulation ---- */
+let es;
+function connectSSE() {
+  es = new EventSource('/stream');
+  es.onmessage = (e) => { try { apply(JSON.parse(e.data)); } catch(_) {} };
+  es.onerror = () => { es.close(); setTimeout(connectSSE, 3000); };
+}
+connectSSE();
+
+/* ---- Control panel actions ---- */
+function sendState(status, extra = {}) {
+  fetch('/api/state', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status, ...extra }),
+  }).then(r => r.json()).then(apply).catch(() => apply({ status, history: [] }));
+}
+
+document.querySelectorAll('#statusGrid .status-btn').forEach(btn => {
+  btn.addEventListener('click', () => sendState(btn.dataset.status, { event: null }));
+});
+
+document.getElementById('simulateBtn').addEventListener('click', () => {
+  fetch('/api/simulate', { method: 'POST' }).then(r => r.json()).then(apply).catch(() => {});
+});
+
+document.getElementById('sendPrompt').addEventListener('click', () => {
+  const v = document.getElementById('promptInput').value.trim();
+  if (!v) return;
+  sendState('running', { event: v, prompt: v });
+});
+
+/* Appearance */
+const sizeRange = document.getElementById('sizeRange');
+const sizeVal = document.getElementById('sizeVal');
+function applySize(pct) {
+  sizeVal.textContent = pct + '%';
+  stageWrap.style.transform = `scale(${pct/100})`;
+  stageWrap.style.transformOrigin = 'bottom right';
+}
+sizeRange.addEventListener('input', () => applySize(+sizeRange.value));
+
+const opRange = document.getElementById('opacityRange');
+const opVal = document.getElementById('opacityVal');
+opRange.addEventListener('input', () => {
+  opVal.textContent = opRange.value + '%';
+  stageWrap.style.opacity = opRange.value / 100;
+});
+
+const lockSwitch = document.getElementById('lockSwitch');
+let locked = false;
+lockSwitch.addEventListener('click', () => {
+  locked = !locked;
+  lockSwitch.classList.toggle('on', locked);
+  stageWrap.style.touchAction = locked ? 'none' : 'none';
+  pet.style.cursor = locked ? 'default' : 'grab';
+});
+
+/* ---- Drag pet (pointer events -> mouse + touch = multi-device) ---- */
+let dragging = false, ox = 0, oy = 0, sx = 0, sy = 0;
+stageWrap.addEventListener('pointerdown', (e) => {
+  if (locked) return;
+  if (e.button !== undefined && e.button !== 0) return;
+  dragging = true;
+  stageWrap.classList.add('drag');
+  const r = stageWrap.getBoundingClientRect();
+  sx = e.clientX; sy = e.clientY;
+  ox = r.left; oy = r.top;
+  const scale = (sizeRange.value / 100);
+  stageWrap.style.transform = `translate(${0}px, ${0}px) scale(${scale})`;
+  stageWrap.style.transformOrigin = 'top left';
+  stageWrap.style.right = 'auto';
+  stageWrap.style.bottom = 'auto';
+  stageWrap.style.left = ox + 'px';
+  stageWrap.style.top = oy + 'px';
+  stageWrap.setPointerCapture(e.pointerId);
+});
+window.addEventListener('pointermove', (e) => {
+  if (!dragging) return;
+  const dx = e.clientX - sx, dy = e.clientY - sy;
+  stageWrap.style.left = (ox + dx) + 'px';
+  stageWrap.style.top = (oy + dy) + 'px';
+});
+window.addEventListener('pointerup', () => { dragging = false; });
+
+/* history toggle */
+document.getElementById('toggleHistory').addEventListener('click', () => historyEl.classList.toggle('open'));
+
+/* right-click */
+pet.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  sendState('waiting', { event: '右键快捷操作' });
+});
+
+/* panel toggle (mobile) */
+document.getElementById('panelToggle').addEventListener('click', () => document.getElementById('panel').classList.toggle('open'));
+
+/* clock */
+function tick() {
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+}
+tick(); setInterval(tick, 1000);
+
+apply({ status: 'idle', event: null, prompt: '', history: [] });
+applySize(100);
+</script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "trae-desktop-pet",
+  "version": "1.0.0",
+  "description": "Trae 桌面宠物主界面 —— 基于设计稿的可运行项目，含 SSE 实时任务流与多端适配控制面板",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>桌面宠物主界面</title>
+    <style id="theme-vars">
+:root {
+  --pet-background: rgba(26, 26, 46, 0);
+  --pet-foreground: #f3f4f6;
+  --pet-card: rgba(255, 255, 255, 0.08);
+  --pet-card-foreground: #f3f4f6;
+  --pet-popover: rgba(30, 30, 50, 0.92);
+  --pet-popover-foreground: #f3f4f6;
+  --pet-primary: #f59e0b;
+  --pet-primary-foreground: #1a1a2e;
+  --pet-muted: rgba(255, 255, 255, 0.12);
+  --pet-muted-foreground: #9ca3af;
+  --pet-border: rgba(255, 255, 255, 0.14);
+  --pet-input: rgba(255, 255, 255, 0.1);
+  --pet-ring: rgba(245, 158, 11, 0.5);
+  --pet-radius-sm: 6px;
+  --pet-radius-md: 12px;
+  --pet-radius-lg: 18px;
+
+  --state-idle: #94a3b8;
+  --state-running: #f59e0b;
+  --state-waiting: #38bdf8;
+  --state-done: #34d399;
+
+  --pet-body-start: #ffe4a8;
+  --pet-body-end: #f5b04a;
+  --pet-eye: #2b1f14;
+  --pet-eye-highlight: #ffffff;
+  --pet-shine: rgba(255, 255, 255, 0.55);
+  --pet-blush: rgba(255, 130, 140, 0.28);
+  --pet-preview-bg: #1a1a2e;
+  --pet-tag-text: #ffffff;
+  --pet-shadow-soft: rgba(0, 0, 0, 0.22);
+  --pet-shadow-medium: rgba(0, 0, 0, 0.18);
+  --pet-shadow-drop: rgba(0, 0, 0, 0.2);
+}
+
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1/dist/index.global.js"></script>
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+    <style type="text/tailwindcss">
+  @theme inline {
+    --color-background: var(--pet-background);
+    --color-foreground: var(--pet-foreground);
+    --color-card: var(--pet-card);
+    --color-card-foreground: var(--pet-card-foreground);
+    --color-popover: var(--pet-popover);
+    --color-popover-foreground: var(--pet-popover-foreground);
+    --color-primary: var(--pet-primary);
+    --color-primary-foreground: var(--pet-primary-foreground);
+    --color-muted: var(--pet-muted);
+    --color-muted-foreground: var(--pet-muted-foreground);
+    --color-border: var(--pet-border);
+    --color-input: var(--pet-input);
+    --color-ring: var(--pet-ring);
+    --radius-sm: var(--pet-radius-sm);
+    --radius-md: var(--pet-radius-md);
+    --radius-lg: var(--pet-radius-lg);
+  }
+  @layer base {
+    body { background: var(--pet-background); color: var(--pet-foreground); }
+    td, th { @apply break-words; word-break: break-all; word-break: auto-phrase; }
+    th { @apply whitespace-nowrap; }
+  }
+    </style>
+    <style id="semantic-token-fallback">
+      .bg-background { background-color: var(--pet-background); }
+      .text-background { color: var(--pet-background); }
+      .border-background { border-color: var(--pet-background); }
+      .ring-background { --tw-ring-color: var(--pet-background); }
+      .bg-foreground { background-color: var(--pet-foreground); }
+      .text-foreground { color: var(--pet-foreground); }
+      .border-foreground { border-color: var(--pet-foreground); }
+      .ring-foreground { --tw-ring-color: var(--pet-foreground); }
+      .bg-card { background-color: var(--pet-card); }
+      .text-card { color: var(--pet-card); }
+      .border-card { border-color: var(--pet-card); }
+      .ring-card { --tw-ring-color: var(--pet-card); }
+      .bg-card-foreground { background-color: var(--pet-card-foreground); }
+      .text-card-foreground { color: var(--pet-card-foreground); }
+      .border-card-foreground { border-color: var(--pet-card-foreground); }
+      .ring-card-foreground { --tw-ring-color: var(--pet-card-foreground); }
+      .bg-popover { background-color: var(--pet-popover); }
+      .text-popover { color: var(--pet-popover); }
+      .border-popover { border-color: var(--pet-popover); }
+      .ring-popover { --tw-ring-color: var(--pet-popover); }
+      .bg-popover-foreground { background-color: var(--pet-popover-foreground); }
+      .text-popover-foreground { color: var(--pet-popover-foreground); }
+      .border-popover-foreground { border-color: var(--pet-popover-foreground); }
+      .ring-popover-foreground { --tw-ring-color: var(--pet-popover-foreground); }
+      .bg-primary { background-color: var(--pet-primary); }
+      .text-primary { color: var(--pet-primary); }
+      .border-primary { border-color: var(--pet-primary); }
+      .ring-primary { --tw-ring-color: var(--pet-primary); }
+      .bg-primary-foreground { background-color: var(--pet-primary-foreground); }
+      .text-primary-foreground { color: var(--pet-primary-foreground); }
+      .border-primary-foreground { border-color: var(--pet-primary-foreground); }
+      .ring-primary-foreground { --tw-ring-color: var(--pet-primary-foreground); }
+      .bg-muted { background-color: var(--pet-muted); }
+      .text-muted { color: var(--pet-muted); }
+      .border-muted { border-color: var(--pet-muted); }
+      .ring-muted { --tw-ring-color: var(--pet-muted); }
+      .bg-muted-foreground { background-color: var(--pet-muted-foreground); }
+      .text-muted-foreground { color: var(--pet-muted-foreground); }
+      .border-muted-foreground { border-color: var(--pet-muted-foreground); }
+      .ring-muted-foreground { --tw-ring-color: var(--pet-muted-foreground); }
+      .bg-border { background-color: var(--pet-border); }
+      .text-border { color: var(--pet-border); }
+      .border-border { border-color: var(--pet-border); }
+      .ring-border { --tw-ring-color: var(--pet-border); }
+      .bg-input { background-color: var(--pet-input); }
+      .text-input { color: var(--pet-input); }
+      .border-input { border-color: var(--pet-input); }
+      .ring-input { --tw-ring-color: var(--pet-input); }
+      .bg-ring { background-color: var(--pet-ring); }
+      .text-ring { color: var(--pet-ring); }
+      .border-ring { border-color: var(--pet-ring); }
+      .ring-ring { --tw-ring-color: var(--pet-ring); }
+    </style>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      [data-icon] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        background-color: currentColor;
+      }
+    </style>
+</head>
+<body class="min-h-screen font-sans antialiased">
+    <main>
+        <style>
+            * { box-sizing: border-box; }
+            body {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                overflow: hidden;
+                background: transparent;
+                color: var(--pet-foreground);
+                font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+                -webkit-app-region: no-drag;
+                user-select: none;
+            }
+            body.preview { background: var(--pet-preview-bg); }
+            main {
+                width: 100%;
+                height: 100%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            #stage {
+                position: relative;
+                width: 220px;
+                height: 260px;
+                flex-shrink: 0;
+            }
+
+            /* Bubble */
+            #bubble {
+                position: absolute;
+                top: 10px;
+                left: 50%;
+                transform: translateX(-50%);
+                min-width: 132px;
+                max-width: 196px;
+                padding: 8px 10px;
+                background: var(--pet-card);
+                border: 1px solid var(--pet-border);
+                border-color: color-mix(in srgb, var(--c, var(--state-idle)) 40%, transparent);
+                border-radius: var(--pet-radius-md);
+                box-shadow: 0 4px 16px var(--pet-shadow-soft);
+                backdrop-filter: blur(8px);
+                -webkit-backdrop-filter: blur(8px);
+                text-align: center;
+                opacity: 1;
+                z-index: 10;
+                -webkit-app-region: no-drag;
+                transition: opacity .25s ease, transform .25s ease;
+            }
+            #bubble .tag {
+                display: inline-block;
+                padding: 2px 7px;
+                border-radius: 999px;
+                font-size: 10px;
+                line-height: 1.2;
+                color: var(--pet-tag-text);
+                background: var(--c, var(--state-idle));
+                margin-bottom: 4px;
+            }
+            #bubble .msg {
+                display: block;
+                font-size: 11px;
+                line-height: 1.4;
+                color: var(--pet-muted-foreground);
+                word-break: break-all;
+            }
+
+            /* Pet */
+            #pet {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                width: 124px;
+                height: 124px;
+                transform: translate(-50%, -50%);
+                z-index: 5;
+                -webkit-app-region: drag;
+                cursor: grab;
+            }
+            #pet:active { cursor: grabbing; }
+
+            .halo {
+                position: absolute;
+                left: 50%;
+                top: 50%;
+                width: 154px;
+                height: 154px;
+                transform: translate(-50%, -50%) scale(1);
+                border-radius: 50%;
+                border: 3px solid var(--c, var(--state-idle));
+                opacity: 0;
+                pointer-events: none;
+                z-index: 0;
+            }
+
+            #pet[data-status="idle"] .halo {
+                opacity: .25;
+                animation: halo-breathe 2.4s ease-in-out infinite;
+            }
+            #pet[data-status="running"] .halo {
+                opacity: .45;
+                animation: halo-spin-pulse 1.3s linear infinite;
+            }
+            #pet[data-status="waiting"] .halo {
+                opacity: .5;
+                animation: halo-blink .9s ease-in-out infinite;
+            }
+            #pet[data-status="done"] .halo {
+                opacity: .55;
+                animation: halo-celebrate .8s ease-out infinite;
+            }
+
+            @keyframes halo-breathe {
+                0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: .22; }
+                50% { transform: translate(-50%, -50%) scale(1.1); opacity: .08; }
+            }
+            @keyframes halo-spin-pulse {
+                0% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: .35; }
+                50% { transform: translate(-50%, -50%) scale(1.12) rotate(180deg); opacity: .2; }
+                100% { transform: translate(-50%, -50%) scale(1) rotate(360deg); opacity: .35; }
+            }
+            @keyframes halo-blink {
+                0%, 100% { opacity: .25; }
+                50% { opacity: .55; }
+            }
+            @keyframes halo-celebrate {
+                0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: .45; }
+                50% { transform: translate(-50%, -50%) scale(1.18); opacity: .22; }
+            }
+
+            .pet-image {
+                position: absolute;
+                left: 6px;
+                top: 10px;
+                width: 112px;
+                height: 112px;
+                object-fit: contain;
+                border-radius: 50%;
+                z-index: 2;
+                transform-origin: center center;
+                filter: drop-shadow(0 14px 36px var(--pet-shadow-drop));
+                pointer-events: none;
+                -webkit-user-drag: none;
+            }
+
+            #pet[data-status="running"] .pet-image { animation: body-sway .9s ease-in-out infinite; }
+            #pet[data-status="done"] .pet-image { animation: body-bounce .7s ease-in-out infinite; }
+            #pet[data-status="waiting"] .pet-image { animation: body-levitate 1.6s ease-in-out infinite; }
+
+            @keyframes body-sway {
+                0%, 100% { transform: rotate(0deg); }
+                25% { transform: rotate(-4deg); }
+                75% { transform: rotate(4deg); }
+            }
+            @keyframes body-bounce {
+                0%, 100% { transform: translateY(0) scale(1); }
+                40% { transform: translateY(-7px) scale(1.02); }
+                60% { transform: translateY(0) scale(1); }
+            }
+            @keyframes body-levitate {
+                0%, 100% { transform: translateY(0); }
+                50% { transform: translateY(-3px); }
+            }
+
+            .pet-shadow {
+                position: absolute;
+                left: 50%;
+                bottom: -4px;
+                width: 76px;
+                height: 12px;
+                transform: translateX(-50%) scale(1);
+                background: var(--pet-shadow-drop);
+                border-radius: 50%;
+                filter: blur(4px);
+                z-index: 0;
+            }
+            #pet[data-status="done"] .pet-shadow { animation: shadow-bounce .7s ease-in-out infinite; }
+            @keyframes shadow-bounce {
+                0%, 100% { transform: translateX(-50%) scale(1); opacity: .2; }
+                40% { transform: translateX(-50%) scale(.82); opacity: .12; }
+                60% { transform: translateX(-50%) scale(1); opacity: .2; }
+            }
+
+            /* Status bar */
+            #statusbar {
+                position: absolute;
+                bottom: 10px;
+                left: 50%;
+                transform: translateX(-50%);
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                min-width: 0;
+                padding: 4px 10px;
+                background: var(--pet-card);
+                border: 1px solid var(--pet-border);
+                border-radius: 999px;
+                box-shadow: 0 4px 14px var(--pet-shadow-medium);
+                backdrop-filter: blur(6px);
+                -webkit-backdrop-filter: blur(6px);
+                font-size: 11px;
+                color: var(--pet-muted-foreground);
+                z-index: 20;
+                -webkit-app-region: no-drag;
+            }
+            #statusbar .dot {
+                width: 7px;
+                height: 7px;
+                border-radius: 50%;
+                background: var(--c, var(--state-idle));
+                box-shadow: 0 0 6px var(--c, var(--state-idle));
+                flex-shrink: 0;
+            }
+            #statusText {
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                max-width: 108px;
+            }
+            #toggleHistory {
+                cursor: pointer;
+                color: var(--pet-primary);
+                flex-shrink: 0;
+                transition: color .2s;
+            }
+            #toggleHistory:hover { color: var(--pet-foreground); text-decoration: underline; }
+
+            /* History panel */
+            #history {
+                position: absolute;
+                left: 50%;
+                bottom: 46px;
+                transform: translateX(-50%);
+                width: 196px;
+                max-height: 120px;
+                overflow-y: auto;
+                display: none;
+                padding: 8px;
+                background: var(--pet-popover);
+                border: 1px solid var(--pet-border);
+                border-radius: var(--pet-radius-md);
+                box-shadow: 0 -6px 18px var(--pet-shadow-soft);
+                font-family: ui-monospace, Menlo, monospace;
+                font-size: 10px;
+                line-height: 1.4;
+                color: var(--pet-muted-foreground);
+                z-index: 30;
+                -webkit-app-region: no-drag;
+            }
+            #history.open { display: block; }
+            #history .row {
+                display: flex;
+                gap: 6px;
+                padding: 3px 0;
+                border-bottom: 1px dashed var(--pet-border);
+            }
+            #history .row:last-child { border-bottom: none; }
+            #history .ts { opacity: .8; flex-shrink: 0; }
+            #history .ev { word-break: break-all; }
+        </style>
+
+        <div id="stage">
+            <div id="bubble">
+                <span class="tag">空闲</span>
+                <span class="msg" id="bubbleMsg">等待 Trae 任务…</span>
+            </div>
+
+            <div id="pet" data-status="idle" title="右键更多操作">
+                <div class="halo"></div>
+                <img class="pet-image" src="../assets/image_0_4w243w.png" alt="Trae Pet" />
+                <div class="pet-shadow"></div>
+            </div>
+
+            <div id="statusbar">
+                <span class="dot"></span>
+                <span id="statusText">空闲</span>
+                <span id="toggleHistory">历史</span>
+            </div>
+
+            <div id="history"></div>
+        </div>
+
+        <script>
+            const pet = document.getElementById('pet');
+            const bubble = document.getElementById('bubble');
+            const bubbleMsg = document.getElementById('bubbleMsg');
+            const statusText = document.getElementById('statusText');
+            const historyEl = document.getElementById('history');
+            const tag = document.querySelector('#bubble .tag');
+            const dot = document.querySelector('#statusbar .dot');
+
+            const STATUS_META = {
+                idle:    { c: 'var(--state-idle)',    en: 'idle',    zh: '空闲',    msg: '等待 Trae 任务…' },
+                running: { c: 'var(--state-running)', en: 'running', zh: '进行中',  msg: '正在努力工作…'  },
+                waiting: { c: 'var(--state-waiting)', en: 'waiting', zh: '等待交互', msg: '需要你确认一下'  },
+                done:    { c: 'var(--state-done)',    en: 'done',    zh: '已完成',  msg: '任务完成！'      },
+            };
+
+            function apply(s) {
+                const meta = STATUS_META[s.status] || STATUS_META.idle;
+                pet.dataset.status = s.status;
+                pet.style.setProperty('--c', meta.c);
+                dot.style.background = meta.c;
+                dot.style.boxShadow = `0 0 6px ${meta.c}`;
+                statusText.textContent = meta.zh + (s.event ? ' · ' + s.event : '');
+
+                const prompt = (s.prompt || '').trim();
+                bubbleMsg.textContent = meta.msg + (prompt ? '「' + prompt.slice(0, 30) + '」' : '');
+                bubble.classList.add('show');
+                tag.style.background = meta.c;
+                tag.textContent = meta.zh;
+            }
+
+            function renderHistory(s) {
+                const list = (s.history || []).slice(-20).reverse();
+                historyEl.innerHTML = list.map(h => {
+                    const ts = h.ts ? new Date(h.ts).toLocaleTimeString('zh-CN', { hour12: false }) : '--:--:--';
+                    return `<div class="row"><span class="ts">${ts}</span><span class="ev">${h.event || '-'} → ${h.status || 'idle'}</span></div>`;
+                }).join('');
+            }
+
+            const es = new EventSource('/stream');
+            es.onmessage = (e) => {
+                try {
+                    const s = JSON.parse(e.data);
+                    apply(s);
+                    renderHistory(s);
+                } catch (err) {
+                    // ignore malformed payloads
+                }
+            };
+            es.onerror = () => { pet.dataset.status = 'idle'; };
+
+            document.getElementById('toggleHistory').addEventListener('click', () => historyEl.classList.toggle('open'));
+
+            pet.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                if (window.traePet && typeof window.traePet.notifyRightClick === 'function') {
+                    window.traePet.notifyRightClick();
+                }
+            });
+
+            if (!window.traePet) {
+                document.body.classList.add('preview');
+            }
+
+            apply({ status: 'idle', event: null, prompt: '', history: [] });
+        </script>
+    </main>
+    <script>lucide.createIcons();</script>
+</body>
+</html>
